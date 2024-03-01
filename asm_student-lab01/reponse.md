@@ -115,3 +115,5 @@ Vu que la boucle for est hardcodé alors on peut enlevé quelques instructions. 
 
 ### Quel est le bug de ce programme ? 
 
+Le compilateur optimise et remove le buffer et le pointer car il y a un pointeur qui n'est plus aloué.
+
