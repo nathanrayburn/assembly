@@ -1,0 +1,27 @@
+/*
+ * exo1.c - String allocation and copy exercise
+ *
+ * Author(s) : Nathan Rayburn
+ */
+
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+
+char *allocate_string(const char *string, int length) {
+    string = calloc(length, sizeof(char));
+    return string;
+}
+
+int main(int argc, char **argv) {
+    printf("Welcome to ASM\n");
+    char* string;
+
+    allocate_string(string, 3)
+
+    *string = "hi";
+
+    printf("%s",string);
+    return 0;
+}
