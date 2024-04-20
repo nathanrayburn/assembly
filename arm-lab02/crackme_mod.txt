@@ -1,0 +1,39 @@
+Etape 6 - x86
+
+Première étape faire le dump dans un fichier : objdump -S crackme >> dumpelf.txt
+
+        if (pswd_valid) {
+   40119:	83 7d f8 00          	cmpl   $0x0,-0x8(%ebp)
+   4011d:	74 21                	je     40140 <main+0xea>
+        		printf("Correct password ! \n");
+   4011f:	68 8b 03 04 00       	push   $0x4038b
+   40124:	e8 74 00 00 00       	call   4019d <printf>
+   40129:	83 c4 04             	add    $0x4,%esp
+                printf("Good job ! Enjoy !\n");
+   4012c:	68 a0 03 04 00       	push   $0x403a0
+   40131:	e8 67 00 00 00       	call   4019d <printf>
+   40136:	83 c4 04             	add    $0x4,%esp
+
+Nous voyons à l'addr du jump c'est 0x4011d et vaut 74 21 qui fait 2 Bytes.
+Alors pour faire notre no operation, il nous faut remplacer ces deux Bytes avec des NOP.
+Notre première addr c'est 0x4011d et la deuxième qui est un byte plus loin c'est donc 0x4011e.
+
+On lance ./st86 et execute les commandes suivantes :
+
+=> mw.b 0x4011d 0x90
+=> mw.b 0x4011e 0x90
+=> go 0x40000
+
+Resultat : 
+
+## Starting application at 0x00040000 ...
+Enter password : 
+1234
+The password is now beeing checked...
+Correct password ! 
+Good job ! Enjoy !
+## Application terminated, rc = 0x1
+
+Ceci fonctionne car le jump n'existe plus comme on la remplacé avec des no operations.
+Alors les prochaines instructions sont les instructions pour afficher le faite que le mot de passe est validé.
+Ce qui permet de skip la condition du if.

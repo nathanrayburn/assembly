@@ -1,0 +1,502 @@
+
+main:     file format elf32-i386
+
+
+Disassembly of section .head:
+
+00040000 <__start>:
+.extern main
+
+.section ".head", "ax"
+
+__start:
+  push %ebp
+   40000:	55                   	push   %ebp
+  mov %esp, %ebp
+   40001:	89 e5                	mov    %esp,%ebp
+
+  push %eax
+   40003:	50                   	push   %eax
+
+  call app_startup
+   40004:	e8 dd 02 00 00       	call   402e6 <app_startup>
+
+  call main
+   40009:	e8 30 00 00 00       	call   4003e <main>
+
+  pop %eax
+   4000e:	58                   	pop    %eax
+
+  leave
+   4000f:	c9                   	leave  
+  ret
+   40010:	c3                   	ret    
+
+Disassembly of section .text:
+
+00040011 <asm_config_register>:
+
+# int asm_config_register(int gpio_reg)
+# input gpio_reg in eax
+# output in eax
+asm_config_register:
+        pushl %ebp                # Save old stack frame
+   40011:	55                   	push   %ebp
+        movl  %esp, %ebp          # Set new stack base
+   40012:	89 e5                	mov    %esp,%ebp
+        movl  8(%ebp), %eax       # copy the argument in eax
+   40014:	8b 45 08             	mov    0x8(%ebp),%eax
+        pushl %ebx
+   40017:	53                   	push   %ebx
+
+        ########## A completer ##########
+        
+        andl $-1, %ebx
+   40018:	83 e3 ff             	and    $0xffffffff,%ebx
+        
+        orl $0xF0, %ebx
+   4001b:	81 cb f0 00 00 00    	or     $0xf0,%ebx
+
+        andl $0x00FFFFFF, %ebx
+   40021:	81 e3 ff ff ff 00    	and    $0xffffff,%ebx
+        
+        orl $0x66000000, %ebx
+   40027:	81 cb 00 00 00 66    	or     $0x66000000,%ebx
+
+        shrl $3, %ebx
+   4002d:	c1 eb 03             	shr    $0x3,%ebx
+
+        orl $0x65, %ebx
+   40030:	83 cb 65             	or     $0x65,%ebx
+
+        andl $0x7ff76e8, %ebx
+   40033:	81 e3 e8 76 ff 07    	and    $0x7ff76e8,%ebx
+        
+        movl %ebx, %eax
+   40039:	89 d8                	mov    %ebx,%eax
+
+0004003b <exit>:
+
+exit:
+        popl  %ebx
+   4003b:	5b                   	pop    %ebx
+        leave                     # Restore stack frame
+   4003c:	c9                   	leave  
+        ret                       # Return to caller
+   4003d:	c3                   	ret    
+
+Disassembly of section .text.main:
+
+0004003e <main>:
+#include <exports.h>
+
+extern int config_register(volatile int gpio_reg);
+extern int asm_config_register(volatile int gpio_reg);
+
+int main(int argc, char *argv[]) {
+   4003e:	55                   	push   %ebp
+   4003f:	89 e5                	mov    %esp,%ebp
+   40041:	83 ec 08             	sub    $0x8,%esp
+
+	volatile int gpio_c = 0xc001;
+   40044:	c7 45 fc 01 c0 00 00 	movl   $0xc001,-0x4(%ebp)
+	volatile int gpio_S = 0xc001;
+   4004b:	c7 45 f8 01 c0 00 00 	movl   $0xc001,-0x8(%ebp)
+
+	gpio_c = config_register(gpio_c);
+   40052:	8b 45 fc             	mov    -0x4(%ebp),%eax
+   40055:	50                   	push   %eax
+   40056:	e8 6b 00 00 00       	call   400c6 <config_register>
+   4005b:	83 c4 04             	add    $0x4,%esp
+   4005e:	89 45 fc             	mov    %eax,-0x4(%ebp)
+	gpio_S = asm_config_register(gpio_S);
+   40061:	8b 45 f8             	mov    -0x8(%ebp),%eax
+   40064:	50                   	push   %eax
+   40065:	e8 a7 ff ff ff       	call   40011 <asm_config_register>
+   4006a:	83 c4 04             	add    $0x4,%esp
+   4006d:	89 45 f8             	mov    %eax,-0x8(%ebp)
+        
+	if (gpio_c == gpio_S) {
+   40070:	8b 55 fc             	mov    -0x4(%ebp),%edx
+   40073:	8b 45 f8             	mov    -0x8(%ebp),%eax
+   40076:	39 c2                	cmp    %eax,%edx
+   40078:	75 0f                	jne    40089 <main+0x4b>
+		printf("Same result with assembly and C\n");
+   4007a:	68 18 03 04 00       	push   $0x40318
+   4007f:	e8 e5 00 00 00       	call   40169 <printf>
+   40084:	83 c4 04             	add    $0x4,%esp
+   40087:	eb 0d                	jmp    40096 <main+0x58>
+	} else {
+		printf("Result differs between assembly and C\n");
+   40089:	68 3c 03 04 00       	push   $0x4033c
+   4008e:	e8 d6 00 00 00       	call   40169 <printf>
+   40093:	83 c4 04             	add    $0x4,%esp
+	}
+	
+	printf("Hit any key to exit ... ");
+   40096:	68 63 03 04 00       	push   $0x40363
+   4009b:	e8 c9 00 00 00       	call   40169 <printf>
+   400a0:	83 c4 04             	add    $0x4,%esp
+	while (!tstc());
+   400a3:	90                   	nop
+   400a4:	e8 96 00 00 00       	call   4013f <tstc>
+   400a9:	85 c0                	test   %eax,%eax
+   400ab:	74 f7                	je     400a4 <main+0x66>
+	
+	/* consume input */
+	(void) getc();
+   400ad:	e8 7f 00 00 00       	call   40131 <getc>
+
+	printf("\n\n");
+   400b2:	68 7c 03 04 00       	push   $0x4037c
+   400b7:	e8 ad 00 00 00       	call   40169 <printf>
+   400bc:	83 c4 04             	add    $0x4,%esp
+
+	return 0;
+   400bf:	b8 00 00 00 00       	mov    $0x0,%eax
+}
+   400c4:	c9                   	leave  
+   400c5:	c3                   	ret    
+
+Disassembly of section .text.config_register:
+
+000400c6 <config_register>:
+/* Ne pas modifier */
+
+int config_register(volatile int gpio_reg) {
+   400c6:	55                   	push   %ebp
+   400c7:	89 e5                	mov    %esp,%ebp
+   400c9:	83 ec 04             	sub    $0x4,%esp
+        const unsigned int UPPER_BYTE_MASK = 0xFF000000;
+   400cc:	c7 45 fc 00 00 00 ff 	movl   $0xff000000,-0x4(%ebp)
+
+        // Set bit 0 to 0
+        gpio_reg &= ~(unsigned int)0x1;
+   400d3:	8b 45 08             	mov    0x8(%ebp),%eax
+   400d6:	83 e0 fe             	and    $0xfffffffe,%eax
+   400d9:	89 45 08             	mov    %eax,0x8(%ebp)
+
+        // Set bits 4,5,6, and 7 to 1
+        gpio_reg |= 0xF << 4;
+   400dc:	8b 45 08             	mov    0x8(%ebp),%eax
+   400df:	0c f0                	or     $0xf0,%al
+   400e1:	89 45 08             	mov    %eax,0x8(%ebp)
+
+        // Clear upper byte
+        gpio_reg &= ~UPPER_BYTE_MASK;
+   400e4:	8b 45 fc             	mov    -0x4(%ebp),%eax
+   400e7:	f7 d0                	not    %eax
+   400e9:	89 c2                	mov    %eax,%edx
+   400eb:	8b 45 08             	mov    0x8(%ebp),%eax
+   400ee:	21 d0                	and    %edx,%eax
+   400f0:	89 45 08             	mov    %eax,0x8(%ebp)
+
+        // Set upper byte
+        gpio_reg |= (0x66 << 3*8);
+   400f3:	8b 45 08             	mov    0x8(%ebp),%eax
+   400f6:	0d 00 00 00 66       	or     $0x66000000,%eax
+   400fb:	89 45 08             	mov    %eax,0x8(%ebp)
+
+        // Divide value by 8
+        gpio_reg /= 8;
+   400fe:	8b 45 08             	mov    0x8(%ebp),%eax
+   40101:	85 c0                	test   %eax,%eax
+   40103:	79 03                	jns    40108 <config_register+0x42>
+   40105:	83 c0 07             	add    $0x7,%eax
+   40108:	c1 f8 03             	sar    $0x3,%eax
+   4010b:	89 45 08             	mov    %eax,0x8(%ebp)
+
+        // Composite operation
+        gpio_reg = (gpio_reg | 0xA5) & (0xFFEEDD << 3);
+   4010e:	8b 45 08             	mov    0x8(%ebp),%eax
+   40111:	25 48 76 ff 07       	and    $0x7ff7648,%eax
+   40116:	0c a0                	or     $0xa0,%al
+   40118:	89 45 08             	mov    %eax,0x8(%ebp)
+
+        return gpio_reg;
+   4011b:	8b 45 08             	mov    0x8(%ebp),%eax
+}
+   4011e:	c9                   	leave  
+   4011f:	c3                   	ret    
+
+Disassembly of section .text.dummy:
+
+00040120 <dummy>:
+ */
+#if GCC_VERSION < 30400
+static
+#endif /* GCC_VERSION */
+void __attribute__((unused)) dummy(void)
+{
+   40120:	55                   	push   %ebp
+   40121:	89 e5                	mov    %esp,%ebp
+
+00040123 <get_version>:
+ * As an example see the CONFIG_CMD_I2C section below
+ */
+#ifndef EXPORT_FUNC
+#define EXPORT_FUNC(a, b, c, ...)
+#endif
+	EXPORT_FUNC(get_version, unsigned long, get_version, void)
+   40123:	b8 00 00 00 00       	mov    $0x0,%eax
+   40128:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4012e:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040131 <getc>:
+	EXPORT_FUNC(getc, int, getc, void)
+   40131:	b8 04 00 00 00       	mov    $0x4,%eax
+   40136:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4013c:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+0004013f <tstc>:
+	EXPORT_FUNC(tstc, int, tstc, void)
+   4013f:	b8 08 00 00 00       	mov    $0x8,%eax
+   40144:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4014a:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+0004014d <putc>:
+	EXPORT_FUNC(putc, void, putc, const char)
+   4014d:	b8 0c 00 00 00       	mov    $0xc,%eax
+   40152:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40158:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+0004015b <puts>:
+	EXPORT_FUNC(puts, void, puts, const char *)
+   4015b:	b8 10 00 00 00       	mov    $0x10,%eax
+   40160:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40166:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040169 <printf>:
+	EXPORT_FUNC(printf, int, printf, const char*, ...)
+   40169:	b8 14 00 00 00       	mov    $0x14,%eax
+   4016e:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40174:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040177 <install_hdlr>:
+#if (defined(CONFIG_X86) && !defined(CONFIG_X86_64)) || defined(CONFIG_PPC)
+	EXPORT_FUNC(irq_install_handler, void, install_hdlr,
+   40177:	b8 18 00 00 00       	mov    $0x18,%eax
+   4017c:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40182:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040185 <free_hdlr>:
+		    int, interrupt_handler_t, void*)
+
+	EXPORT_FUNC(irq_free_handler, void, free_hdlr, int)
+   40185:	b8 1c 00 00 00       	mov    $0x1c,%eax
+   4018a:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40190:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040193 <malloc>:
+#else
+	EXPORT_FUNC(dummy, void, install_hdlr, void)
+	EXPORT_FUNC(dummy, void, free_hdlr, void)
+#endif
+	EXPORT_FUNC(malloc, void *, malloc, size_t)
+   40193:	b8 20 00 00 00       	mov    $0x20,%eax
+   40198:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4019e:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000401a1 <free>:
+#if !CONFIG_IS_ENABLED(SYS_MALLOC_SIMPLE)
+	EXPORT_FUNC(free, void, free, void *)
+   401a1:	b8 24 00 00 00       	mov    $0x24,%eax
+   401a6:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   401ac:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000401af <udelay>:
+#endif
+	EXPORT_FUNC(udelay, void, udelay, unsigned long)
+   401af:	b8 28 00 00 00       	mov    $0x28,%eax
+   401b4:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   401ba:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000401bd <get_timer>:
+	EXPORT_FUNC(get_timer, unsigned long, get_timer, unsigned long)
+   401bd:	b8 2c 00 00 00       	mov    $0x2c,%eax
+   401c2:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   401c8:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000401cb <vprintf>:
+	EXPORT_FUNC(vprintf, int, vprintf, const char *, va_list)
+   401cb:	b8 30 00 00 00       	mov    $0x30,%eax
+   401d0:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   401d6:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000401d9 <do_reset>:
+	EXPORT_FUNC(do_reset, int, do_reset, cmd_tbl_t *,
+   401d9:	b8 34 00 00 00       	mov    $0x34,%eax
+   401de:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   401e4:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000401e7 <env_get>:
+		    int , int , char * const [])
+	EXPORT_FUNC(env_get, char  *, env_get, const char*)
+   401e7:	b8 38 00 00 00       	mov    $0x38,%eax
+   401ec:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   401f2:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000401f5 <env_set>:
+	EXPORT_FUNC(env_set, int, env_set, const char *, const char *)
+   401f5:	b8 3c 00 00 00       	mov    $0x3c,%eax
+   401fa:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40200:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040203 <simple_strtoul>:
+	EXPORT_FUNC(simple_strtoul, unsigned long, simple_strtoul,
+   40203:	b8 40 00 00 00       	mov    $0x40,%eax
+   40208:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4020e:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040211 <strict_strtoul>:
+		    const char *, char **, unsigned int)
+	EXPORT_FUNC(strict_strtoul, int, strict_strtoul,
+   40211:	b8 44 00 00 00       	mov    $0x44,%eax
+   40216:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4021c:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+0004021f <simple_strtol>:
+		    const char *, unsigned int , unsigned long *)
+	EXPORT_FUNC(simple_strtol, long, simple_strtol,
+   4021f:	b8 48 00 00 00       	mov    $0x48,%eax
+   40224:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4022a:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+0004022d <strcmp>:
+		    const char *, char **, unsigned int)
+	EXPORT_FUNC(strcmp, int, strcmp, const char *cs, const char *ct)
+   4022d:	b8 4c 00 00 00       	mov    $0x4c,%eax
+   40232:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40238:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+0004023b <i2c_write>:
+#if defined(CONFIG_CMD_I2C) && !defined(CONFIG_DM_I2C)
+	EXPORT_FUNC(i2c_write, int, i2c_write, uchar, uint, int , uchar * , int)
+	EXPORT_FUNC(i2c_read, int, i2c_read, uchar, uint, int , uchar * , int)
+#else
+	EXPORT_FUNC(dummy, void, i2c_write, void)
+   4023b:	b8 50 00 00 00       	mov    $0x50,%eax
+   40240:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40246:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040249 <i2c_read>:
+	EXPORT_FUNC(dummy, void, i2c_read, void)
+   40249:	b8 54 00 00 00       	mov    $0x54,%eax
+   4024e:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40254:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040257 <spi_setup_slave>:
+#endif
+
+#if !defined(CONFIG_CMD_SPI) || defined(CONFIG_DM_SPI)
+	EXPORT_FUNC(dummy, void, spi_setup_slave, void)
+   40257:	b8 58 00 00 00       	mov    $0x58,%eax
+   4025c:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40262:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040265 <spi_free_slave>:
+	EXPORT_FUNC(dummy, void, spi_free_slave, void)
+   40265:	b8 5c 00 00 00       	mov    $0x5c,%eax
+   4026a:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   40270:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040273 <spi_claim_bus>:
+	EXPORT_FUNC(spi_setup_slave, struct spi_slave *, spi_setup_slave,
+		    unsigned int, unsigned int, unsigned int, unsigned int)
+	EXPORT_FUNC(spi_free_slave, void, spi_free_slave, struct spi_slave *)
+#endif
+#ifndef CONFIG_CMD_SPI
+	EXPORT_FUNC(dummy, void, spi_claim_bus, void)
+   40273:	b8 60 00 00 00       	mov    $0x60,%eax
+   40278:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4027e:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+00040281 <spi_release_bus>:
+	EXPORT_FUNC(dummy, void, spi_release_bus, void)
+   40281:	b8 64 00 00 00       	mov    $0x64,%eax
+   40286:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4028c:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+0004028f <spi_xfer>:
+	EXPORT_FUNC(dummy, void, spi_xfer, void)
+   4028f:	b8 68 00 00 00       	mov    $0x68,%eax
+   40294:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   4029a:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+0004029d <ustrtoul>:
+	EXPORT_FUNC(spi_claim_bus, int, spi_claim_bus, struct spi_slave *)
+	EXPORT_FUNC(spi_release_bus, void, spi_release_bus, struct spi_slave *)
+	EXPORT_FUNC(spi_xfer, int, spi_xfer, struct spi_slave *,
+		    unsigned int, const void *, void *, unsigned long)
+#endif
+	EXPORT_FUNC(ustrtoul, unsigned long, ustrtoul,
+   4029d:	b8 6c 00 00 00       	mov    $0x6c,%eax
+   402a2:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   402a8:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000402ab <ustrtoull>:
+		    const char *, char **, unsigned int)
+	EXPORT_FUNC(ustrtoull, unsigned long long, ustrtoull,
+   402ab:	b8 70 00 00 00       	mov    $0x70,%eax
+   402b0:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   402b6:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000402b9 <strcpy>:
+		    const char *, char **, unsigned int)
+	EXPORT_FUNC(strcpy, char *, strcpy, char *dest, const char *src)
+   402b9:	b8 74 00 00 00       	mov    $0x74,%eax
+   402be:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   402c4:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000402c7 <mdelay>:
+	EXPORT_FUNC(mdelay, void, mdelay, unsigned long msec)
+   402c7:	b8 78 00 00 00       	mov    $0x78,%eax
+   402cc:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   402d2:	ff 24 01             	jmp    *(%ecx,%eax,1)
+
+000402d5 <memset>:
+	EXPORT_FUNC(memset, void *, memset, void *, int, size_t)
+   402d5:	b8 7c 00 00 00       	mov    $0x7c,%eax
+   402da:	8b 0d 44 04 04 00    	mov    0x40444,%ecx
+   402e0:	ff 24 01             	jmp    *(%ecx,%eax,1)
+#include <_exports.h>
+}
+   402e3:	90                   	nop
+   402e4:	5d                   	pop    %ebp
+   402e5:	c3                   	ret    
+
+Disassembly of section .text.app_startup:
+
+000402e6 <app_startup>:
+
+#include <asm/sections.h>
+
+void app_startup(char * const *dummy)
+{
+   402e6:	55                   	push   %ebp
+   402e7:	89 e5                	mov    %esp,%ebp
+   402e9:	83 ec 04             	sub    $0x4,%esp
+	char *cp = __bss_start;
+   402ec:	c7 45 fc 44 04 04 00 	movl   $0x40444,-0x4(%ebp)
+
+	/* Zero out BSS */
+	while (cp < _end)
+   402f3:	eb 0c                	jmp    40301 <app_startup+0x1b>
+		*cp++ = 0;
+   402f5:	8b 45 fc             	mov    -0x4(%ebp),%eax
+   402f8:	8d 50 01             	lea    0x1(%eax),%edx
+   402fb:	89 55 fc             	mov    %edx,-0x4(%ebp)
+   402fe:	c6 00 00             	movb   $0x0,(%eax)
+	while (cp < _end)
+   40301:	81 7d fc 4c 04 04 00 	cmpl   $0x4044c,-0x4(%ebp)
+   40308:	72 eb                	jb     402f5 <app_startup+0xf>
+
+	/* (DRE) We are not able to get the address of global_data, hence we force jt with the current address */
+	jt = (void *) 0x0fd02880;
+   4030a:	c7 05 44 04 04 00 80 	movl   $0xfd02880,0x40444
+   40311:	28 d0 0f 
+
+}
+   40314:	90                   	nop
+   40315:	c9                   	leave  
+   40316:	c3                   	ret    

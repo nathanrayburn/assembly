@@ -1,0 +1,41 @@
+Etape 5 - Fait sur ARM
+
+L'instruction qui effecue le test correspondant à (hash== MY_HASH)
+
+82000060:   bne     0x8200002c <check_password+28>
+82000064:   ldr     r2, [r11, #-8]
+82000068:   movw    r3, #48879      ; 0xbeef
+8200006c:   movt    r3, #57005      ; 0xdead
+82000070:   cmp     r2, r3
+82000074:   moveq   r3, #1
+82000078:   movne   r3, #0
+8200007c:   uxtb    r3, r3
+82000080:   mov     r0, r3
+82000084:   add     sp, r11, #0
+82000088:   pop     {r11}           ; (ldr r11, [sp], #4)
+8200008c:   bx      lr
+
+Nous avons 2 registres qui nous interesse. Premièrement R2 qui contient valeur du hash de l'input de l'utilisateur.
+Deuxièmement R3 qui contient la valeur de comparaison pour le HASH et aussi devient le valeur de retour pour la fonction.
+
+instruction cmp   addr -> 82000070 cmp compare
+instruction moveq addr -> 82000074 mov valeur condition equals
+instruction movne addr -> 82000078 mov valeur condition not equals
+
+Alors si les deux hash sont égaux, la moveq met 1 dans le registre R3.
+Si ce n'est pas égal, movne met 0 dans le registre de R3.
+
+Au call back de la fonction, le if utilise le registre 3 pour savoir si c'est vrai ou faux. True = 1, False = 0.
+
+Question 1) 
+On peut bypass alors le check password si à la fin au retour on modifie la valeur de retour de R3 à 1.
+On peut aussi bypass si avant le comparaison, on ajoute dans R2 la valeur attendu de R3,
+la comparaison sera donc car R2 == R3, la valeur de retour sera true alors R3 = 1, et on validera la condition du if.
+
+Question 2)
+Non ce n'est pas forcément une bonnée idée de modifier le compteur PC pour fait un saut à l'instruction qu'on souhaite.
+On pourrait skip des instructions qui pourraient être important pour l'execution du programme. Cela pourrait entrainer des erreurs.
+
+
+
+
